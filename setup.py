@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='anodot-monitor',
-    version="0.6",
+    version="0.7",
     description='Anodot Monitoring',
     author='Alexander Shereshevsky',
     author_email='shereshevsky@gmail.com',
