@@ -48,4 +48,11 @@ while logtime < 1200:
     histogram.add(5)
 ```
 
-Reports to monitoring environment
+Reports to monitoring environment.
+
+
+### Publishing to pypi:
+```shell
+python setup.py sdist bdist_wheel
+twine upload dist/*
+```
