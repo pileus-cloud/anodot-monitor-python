@@ -9,6 +9,9 @@ if __name__ == '__main__':
     un = "hits"
     uc = "test_user"
 
+    #submit sample metric and flush it. fit to single metric value scenario rather continues sampling like meter and counters 
+    metrics_adapter.submit_sample(component=c, what='sample_b', value=1, unit='count', user_id=uc, a='aa1', b='b1')
+    
     counter1 = metrics_adapter.create_counter(c, "counter_a", un, uc, a="1")
     counter1.inc(3)
 

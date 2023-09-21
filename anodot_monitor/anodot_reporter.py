@@ -23,9 +23,23 @@ class AnodotReporter(Reporter):
             "value": value,
             "name": f"{name}{target_type}{interval}{unit}"
         }
-
-    def report_now(self, registry=None, timestamp=None):
-        metrics = self._dump_metrics(registry or self.registry, timestamp)
+    
+    def submit(self, name, value, timestamp, flush:bool, properties):
+        metric = self.__create_metric(timestamp=timestamp, value=value, properties=properties, name=name.as_string())
+        metrics=[metric]
+        if flush:
+            rollup = 'shortRollup'
+            flushInterval = 60
+            end_of_bucket_timestamp = timestamp + (flushInterval - timestamp % flushInterval) % flushInterval
+            flush_metric = self.__create_metric(timestamp=end_of_bucket_timestamp, value=value, properties=properties, name=name.as_string())
+            flush_metric['rollup'] = rollup
+            flush_metric['flush'] = True
+            del flush_metric['value']
+            metrics.append(flush_metric)
+        
+        self.__submit(metrics=metrics, timestamp=timestamp)
+    
+    def __submit(self, metrics,  timestamp=None):
         args = {'headers':
                 {'cache-control': "no-cache", 'andt-auditlog': '{"admin":true}', 'Content-type': 'application/json'},
                 'params': {'token': self._token},
@@ -40,6 +54,10 @@ class AnodotReporter(Reporter):
             except Exception as e:
                 logger.exception('failed to post metrics {}'.format(e))
 
+    def report_now(self, registry=None, timestamp=None):
+        metrics = self._dump_metrics(registry or self.registry, timestamp)
+        self.__submit(timestamp=timestamp, metrics=metrics)
+    
     def _dump_metrics(self, registry, timestamp=None):
         timestamp = timestamp or int(round(self.clock.time()))
 
@@ -65,3 +83,4 @@ class AnodotReporter(Reporter):
                                                name=metric_name.as_string())
                           )
         return result
+    

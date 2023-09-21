@@ -1,13 +1,15 @@
 from anodot_monitor.metric_registry import AnodotMetricsRegistry
 from anodot_monitor.settings import settings
 from anodot_monitor.anodot_reporter import AnodotReporter
+from datetime import datetime
+import time
 from anodot_monitor.metric_name import MetricName
 from pyformance.meters import Meter, Counter, Histogram, Timer, Gauge
 import socket
 
 
 class MetricsAdapter:
-    def __init__(self, dc="na", customer="na", role="undefined-services"):
+    def __init__(self, dc="na", customer="na", role="undefined-services", clock=None):
         self._stack = settings['stack']
         self._dc = dc
         self._az = settings['aws.ses.region']
@@ -15,11 +17,12 @@ class MetricsAdapter:
         self._server = socket.gethostname()
         self._customer = customer
         self._registry = AnodotMetricsRegistry()
-        monitoring_url = settings['anodotd.monitoring.url']
+        self.clock = clock or time
+        monitoring_url = settings.get('anodot.monitoring.url')
         if monitoring_url:
             url = f"{settings['anodot.monitoring.url']}metrics"
             token = settings['anodot.monitoring.token']
-            self._reporter = AnodotReporter(url=url, token=token, registry=self._registry)
+            self._reporter = AnodotReporter(url=url, token=token, registry=self._registry, clock=self.clock)
         else:
             from pyformance.reporters.reporter import Reporter
             self._reporter = Reporter()
@@ -64,7 +67,18 @@ class MetricsAdapter:
                                      unit=unit,
                                      user_id=user_id,
                                      properties=properties)
+    
+    def submit_sample(self, component=None, what=None, value:float=0, timestamp:int = None,  unit=None, user_id=None, flush:bool = True, **properties):
+        timestamp = timestamp or int(round(self.clock.time()))
+        metric_name = self.__get_metric_name(component=component,
+                                             what=what,
+                                             unit=unit,
+                                             user_id=user_id,
+                                             properties=properties)
+        
+        self._reporter.submit(name=metric_name, value=value, timestamp=timestamp, flush=flush, properties=properties)
 
+    
     def __create_element(self, setter, component, what, unit, user_id, properties=None):
         metric_name = self.__get_metric_name(component=component,
                                              what=what,
