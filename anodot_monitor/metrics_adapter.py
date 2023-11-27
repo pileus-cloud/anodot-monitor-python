@@ -7,11 +7,12 @@ import socket
 
 
 class MetricsAdapter:
-    def __init__(self, dc="na", customer="na", role="undefined-services"):
+    def __init__(self, dc="na", customer="na", role="undefined-services", include_server_property: bool = True):
         self._stack = settings['stack']
         self._dc = dc
         self._az = settings['aws.ses.region']
         self._role = role
+        self._include_server_property = include_server_property
         self._server = socket.gethostname()
         self._customer = customer
         self._registry = AnodotMetricsRegistry()
@@ -79,12 +80,13 @@ class MetricsAdapter:
             .with_property("dc", self._dc)\
             .with_property("az", self._az)\
             .with_property("role", self._role)\
-            .with_property("server", self._server)\
             .with_property("component", component)\
             .with_property("unit", unit)\
             .with_property("user_id", user_id)\
-            .with_property("customer", self._customer)\
+            .with_property("customer", self._customer) \
 
+        if self._include_server_property:
+            builder.with_property("server", self._server)
         if properties:
             for key, value in properties.items():
                 builder.with_property(key, value)
